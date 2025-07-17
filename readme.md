@@ -3,6 +3,7 @@
 This project is a web-based interface for interacting with Modbus devices via BLE using Nordic UART Service.
 
 ---
+Connect -> Console -> Control -> Modbus Tables
 
 ## 📡 Modbus Page
 
