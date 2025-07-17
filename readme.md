@@ -37,6 +37,7 @@ Update the `DEVICE_NAME` constant in the script to select the appropriate device
 
 ```javascript
 const DEVICE_NAME = 'Bldc1'; // change to target another Modbus device
+```
 🧠 Internal Workflow
 On page load:
 
