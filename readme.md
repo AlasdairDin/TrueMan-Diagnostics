@@ -1,64 +1,107 @@
-# Modbus Web Dashboard
+# ⚙️ Modbus BLE Web Interface
 
-This is a dynamic HTML + JavaScript front-end interface designed to interact with Modbus-capable devices over a BLE (Bluetooth Low Energy) transport layer. The page queries for register labels and values, then displays them in a tabular format, updating regularly for live status monitoring.
+This project is a web-based interface for interacting with Modbus devices via BLE using Nordic UART Service.
 
-## 🔧 Features
+---
 
-- Automatically fetches and renders **register labels** and **values** from a Modbus device
-- Robust handling of **chunked BLE responses**
-- Optimized polling only for values (labels fetched once)
-- Manual **refresh button** to reload register labels
-- Clean two-column UI: `Key` and `Value`
-- Polling safely paused when refreshing labels
+## 📡 Modbus Page
 
-## 📡 Modbus Device List
+### Overview
+The Modbus page dynamically loads register labels and values for a selected Modbus device.
 
-These device names can be used in BLE requests (e.g., `dev=1;`) to target specific hardware:
+### Internal Workflow
 
-| ID  | Device       |
-|-----|--------------|
-| 0   | Controller   |
-| 1   | Bldc1        |
-| 2   | Bldc2        |
-| 3   | Bldc3        |
-| 4   | Brush1       |
-| 5   | Brush2       |
-| 6   | Stepper1     |
-| 7   | Stepper2     |
-| 8   | Linak1       |
-| 9   | Linak2       |
-| 10  | Hopper       |
-| 11  | Elevator     |
-| 12  | EleBoard     |
-| 13  | LedServer    |
-| 14  | LedPanel11   |
+- **On page load**:
+  - Sends `GET /getModbusRegText` over BLE to retrieve Modbus labels
+- **Once labels are received**:
+  - Table is built with labels in the Key column
+  - Starts polling every 5 seconds with `GET /getModbusRegValue`
+- **Each value poll**:
+  - Returns a list of `&`-delimited register values
+  - Values are mapped to the label table row by their index
+- **Refresh Labels** button:
+  - Temporarily stops polling
+  - Sends `GET /getModbusRegText` again
+  - Rebuilds the label table
+  - Resumes polling after completion
 
-Update the `DEVICE_NAME` constant in the script to select the appropriate device:
+---
+
+## 🔌 BLE Integration (Nordic UART)
+
+All device communication happens over BLE via the Nordic UART Service.
+
+### Expected BLE Hook
+The interface relies on a global method:
 
 ```javascript
-const DEVICE_NAME = 'Bldc1'; // change to target another Modbus device
+window.sendBLE(packet);
 ```
 
-🧠 Internal Workflow
-On page load:
+All BLE responses must be routed through:
 
-Sends GET /getModbusRegText to receive and render the labels
+```javascript
+window._modbusHandlers.push(handlerFunction);
+```
 
-Once labels are received:
+Packets follow this format:
+```
+ht GET /getModbusRegText HTTP/1.1^Content-Length: 5^Content-Type: text/plain^^dev=1;
+```
 
-Starts polling every 5s with GET /getModbusRegValue
+Responses are streamed in chunks and parsed in a debounce-controlled buffer to handle partial responses gracefully.
 
-Values are matched by index and populated in the table
+---
 
-Refresh Labels button:
+## 🔧 Connection Control Page
 
-Pauses polling, reloads labels, then resumes polling
+Provides manual connection management to BLE devices:
 
-📂 Integration Notes
-This script is intended to run inside an HTML container, included by a parent index.html
+- Displays available BLE devices
+- Initiates or terminates connections
+- Shows BLE status and errors
 
-It expects sendBLE(packet) to be available globally
+### Features:
+- Calls `navigator.bluetooth.requestDevice(...)`
+- Ensures the Nordic UART Service is connected
+- Handles reconnection logic if needed
 
-BLE responses must be routed into _modbusHandlers[] array for parsing
+---
 
-Made with 🧠 + 🔌 for Modbus monitoring!
+## 🧾 Console Page
+
+A raw terminal interface to directly send and receive UART messages over BLE.
+
+- Input is transmitted directly to the BLE device
+- Responses appear in a scrolling console log
+- Useful for debugging or manual command execution
+
+---
+
+## 🧠 Modbus Device List
+
+```
+0:  Controller
+1:  Bldc1
+2:  Bldc2
+3:  Bldc3
+4:  Brush1
+5:  Brush2
+6:  Stepper1
+7:  Stepper2
+8:  Linak1
+9:  Linak2
+10: Hopper
+11: Elevator
+12: EleBoard
+13: LedServer
+14: LedPanel11
+```
+
+---
+
+## 📂 Integration Notes
+
+- This script is intended to be **included inside a container page**, not as a standalone file
+- Requires **BLE support** in the browser (e.g., Chrome)
+- Can be hosted locally or embedded within a web app UI
