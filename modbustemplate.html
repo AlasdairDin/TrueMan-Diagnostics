@@ -1,0 +1,29 @@
+<div class="container py-4">
+    <h2 id="deviceTitle" class="text-primary text-center mb-4">Device Name</h2>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped table-hover align-middle" id="modbusTable">
+            <thead class="table-primary">
+                <tr>
+                    <th scope="col">Register</th>
+                    <th scope="col">Description</th>
+                    <th scope="col">Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Rows dynamically populated via JavaScript -->
+                <tr>
+                    <td>0x0001</td>
+                    <td>Status</td>
+                    <td id="reg-0001">Loading...</td>
+                </tr>
+                <tr>
+                    <td>0x0002</td>
+                    <td>Speed</td>
+                    <td id="reg-0002">Loading...</td>
+                </tr>
+                <!-- Add more placeholders or dynamically inject -->
+            </tbody>
+        </table>
+    </div>
+</div>

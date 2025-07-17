@@ -1,0 +1,106 @@
+<!-- assets/pages/control.html -->
+<div class="container mt-4">
+
+  <!-- Motion Controls -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">Motion Controls</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Speed</label>
+          <div class="input-group">
+            <button class="btn btn-outline-secondary" onclick="adjust('speed', -1)">-</button>
+            <input id="speed" class="form-control text-center" value="0" onblur="inputChanged(this)">
+            <button class="btn btn-outline-secondary" onclick="adjust('speed', 1)">+</button>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Length</label>
+          <div class="input-group">
+            <button class="btn btn-outline-secondary" onclick="adjust('length', -1)">-</button>
+            <input id="length" class="form-control text-center" value="0" onblur="inputChanged(this)">
+            <button class="btn btn-outline-secondary" onclick="adjust('length', 1)">+</button>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Line</label>
+          <div class="input-group">
+            <button class="btn btn-outline-secondary" onclick="adjust('line', -1)">-</button>
+            <input id="line" class="form-control text-center" value="0" onblur="inputChanged(this)">
+            <button class="btn btn-outline-secondary" onclick="adjust('line', 1)">+</button>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Swing</label>
+          <div class="input-group">
+            <button class="btn btn-outline-secondary" onclick="adjust('swing', -1)">-</button>
+            <input id="swing" class="form-control text-center" value="0" onblur="inputChanged(this)">
+            <button class="btn btn-outline-secondary" onclick="adjust('swing', 1)">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feeding Controls -->
+  <div class="card mb-4">
+    <div class="card-header bg-success text-white">Feeding Controls</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label d-block">Auto Feed</label>
+          <button id="autoFeedToggle" class="btn btn-outline-primary w-100" onclick="toggle(this)">Off</button>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Repeat Time</label>
+          <div class="input-group">
+            <button class="btn btn-outline-secondary" onclick="adjust('repeat', -1)">-</button>
+            <input id="repeat" class="form-control text-center" value="0" onblur="inputChanged(this)">
+            <button class="btn btn-outline-secondary" onclick="adjust('repeat', 1)">+</button>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label d-block">Buzzer</label>
+          <button id="buzzerToggle" class="btn btn-outline-primary w-100" onclick="toggle(this)">Off</button>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label d-block">One Ball</label>
+          <button class="btn btn-outline-dark w-100" onclick="sendCommand('oneBall')">Launch</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Display & Feedback -->
+  <div class="card mb-4">
+    <div class="card-header bg-info text-white">Display & Feedback</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label d-block">Lazer</label>
+          <button id="lazerToggle" class="btn btn-outline-primary w-100" onclick="toggle(this)">Off</button>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Animation</label>
+          <select id="animationSelect" class="form-select" onchange="onAnimationSelected(this)">
+            <option>Loading...</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Brightness</label>
+          <div class="input-group">
+            <button class="btn btn-outline-secondary" onclick="adjust('brightness', -1)">-</button>
+            <input id="brightness" class="form-control text-center" value="60" readonly>
+            <button class="btn btn-outline-secondary" onclick="adjust('brightness', 1)">+</button>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label d-block">Speed Display</label>
+          <button id="speedUnitToggle" class="btn btn-outline-secondary w-100" onclick="toggleUnit(this)">MPH</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+

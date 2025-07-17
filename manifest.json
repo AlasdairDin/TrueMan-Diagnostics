@@ -1,0 +1,10 @@
+{
+    "name": "Bola Machine Diagnostics",
+    "short_name": "ControlPanel",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "background_color": "#f8f9fa",
+    "theme_color": "#E03636FF",
+    "description": "Bola Machine Diagnostics and Control"
+  }
+  
