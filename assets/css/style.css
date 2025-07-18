@@ -5,6 +5,9 @@ body {
     background-color: #f8f9fa;
 }
 
+#loadingOverlay {
+  transition: opacity 0.3s ease-in-out;
+}
 
 button {
     background-color: #000000;

@@ -17,10 +17,31 @@ document.addEventListener('DOMContentLoaded', () => {
     let animationBuffer = '';
     let expectingAnimations = false;
 
+    const bleQueue = [];
+    let isSending = false;
+
 
     const UART_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
     const UART_TX_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e'; // notify
     const UART_RX_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e'; // write
+
+    const modbusDevices = {
+        bldc1: { name: "Bldc1", number: 0 },
+        bldc2: { name: "Bldc", number: 1 },
+        bldc3: { name: "Bldc3", number: 2 },
+        controller: { name: "Controller", number: 3 },
+        brush1: { name: "Brush1", number: 4 },
+        brush2: { name: "Brush2", number: 5 },
+        stepper1: { name: "Stepper1", number: 6 },
+        stepper2: { name: "Stepper2", number: 7 },
+        linak1: { name: "Linak1", number: 8 },
+        linak2: { name: "Linak2", number: 9 },
+        hopper: { name: "Hopper", number: 10 },
+        elevator: { name: "Elevator", number: 11 },
+        eleboard: { name: "EleBoard", number: 12 },
+        ledserver: { name: "LedServer", number: 13 },
+        ledpanel11: { name: "LedPanel11", number: 14 },
+    };
 
     ////////////////////////////////////////////////////////////// DEBUG MODE
     // Check for debug mode in URL parameters
@@ -28,21 +49,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const debugLevel = parseInt(urlParams.get('debug'), 10) || 0;
     const DEBUG = debugLevel >= 1;
     const VERBOSE = debugLevel >= 2;
-
+    window.MODBUS_DEBUG = debugLevel >= 3;
     function debugLog(...args) {
         if (DEBUG) console.log(...args);
     }
     function verboseLog(...args) {
         if (VERBOSE) console.log(...args);
     }
+    function modbusLog(...args) {
+        if (MODBUS) console.log(...args);
+    }
     function showDebugBanner() {
         const banner = document.createElement('div');
-        banner.textContent = VERBOSE ? 'VERBOSE MODE 🛠️' : 'DEBUG MODE 🛠️';
+        banner.textContent = window.MODBUS_DEBUG ? 'MODBUS MODE 🛠️' : VERBOSE ? 'VERBOSE MODE 🛠️' : 'DEBUG MODE 🛠️';
         banner.style.position = 'fixed';
         banner.style.bottom = '10px';
         banner.style.left = '10px';
         banner.style.padding = '8px 12px';
-        banner.style.backgroundColor = VERBOSE ? '#ff0000' : '#4d4d4d';
+        banner.style.backgroundColor = window.MODBUS_DEBUG ? '#007bff' : VERBOSE ? '#ff0000' : '#4d4d4d';
         banner.style.color = 'white';
         banner.style.borderRadius = '8px';
         banner.style.fontSize = '14px';
@@ -58,45 +82,52 @@ document.addEventListener('DOMContentLoaded', () => {
 ///////////////////////////////////////////////////////////// UI FUNCTIONS
     loadPage('connect', 'connectLayout');
 
-    function loadPage(pageName, containerId) {
+    function loadPage(pageName, containerId, pageContext = null) {
         if (window.stopModbusPolling) window.stopModbusPolling();
         const container = document.getElementById(containerId);
         showLoading(container);
+        debugLog(`Loading page: ${pageName}`);
 
         fetch(`./assets/pages/${pageName}.html`)
             .then(response => response.text())
             .then(html => {
-                container.innerHTML = html;
+            if (pageName === "modbus/stencil" && pageContext) {
+                html = html
+                .replace(/DEVICE_NAME_PLACEHOLDER/g, pageContext.name)
+                .replace(/DEVICE_NUMBER_PLACEHOLDER/g, pageContext.number);
+            }
+            container.innerHTML = html;
 
-                // ✅ Manually execute scripts inside loaded HTML
-                const scripts = container.querySelectorAll('script');
-                scripts.forEach(oldScript => {
-                    const newScript = document.createElement('script');
-                    if (oldScript.src) {
-                        newScript.src = oldScript.src;
-                    } else {
-                        newScript.textContent = oldScript.textContent;
-                    }
-                    document.body.appendChild(newScript);
-                    oldScript.remove();
-                });
-
-                if (pageName === 'connect') {
-                    setupConnectEventListeners();
+            // Re-execute embedded scripts
+            const scripts = container.querySelectorAll("script");
+            scripts.forEach(oldScript => {
+                const newScript = document.createElement("script");
+                if (oldScript.src) {
+                newScript.src = oldScript.src;
                 } else {
-                    setupPageEventListeners();
+                newScript.textContent = oldScript.textContent;
                 }
-                if (pageName === 'console') {
-                    setupConsoleEvents();
-                }
-                highlightTab(pageName + 'Tab');
+                document.body.appendChild(newScript);
+                oldScript.remove();
+            });
+
+            if (pageName === "connect") {
+                setupConnectEventListeners();
+            } else {
+                setupPageEventListeners();
+            }
+
+            if (pageName === "console") {
+                setupConsoleEvents();
+            }
+
+            highlightTab(pageName + "Tab");
             })
             .catch(err => {
-                console.error('Error loading page:', err);
-                container.innerHTML = '<p class="text-danger">Failed to load page.</p>';
-            }
-        );
-    }
+            console.error("Error loading page:", err);
+            container.innerHTML = '<p class="text-danger">Failed to load page.</p>';
+            });
+        }
 
 
     function setupConnectEventListeners() {
@@ -143,6 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('controlTab')?.addEventListener('click', () => {
             stopSettingsPolling(); 
             stopStatusPolling(); 
+            
             window.loadAnimationList();
             loadPage('control', 'appContent');
             const waitForControlInputs = setInterval(() => {
@@ -173,16 +205,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         document.querySelectorAll('.modbus-tab').forEach(el => {
-            el.removeEventListener('click', modbusTabHandler); 
+            el.removeEventListener('click', modbusTabHandler);
             el.addEventListener('click', modbusTabHandler);
         });
 
         function modbusTabHandler(e) {
             e.preventDefault();
-            stopSettingsPolling(); 
-            stopStatusPolling(); 
-            const page = e.currentTarget.dataset.page;
-            loadPage(`modbus/${page}`, 'appContent');
+            stopSettingsPolling();
+            stopStatusPolling();
+
+            const key = e.currentTarget.dataset.page;
+            const config = modbusDevices[key];
+            if (!config) return console.warn("Unknown Modbus device:", key);
+
+            loadPage("modbus/stencil", "appContent", config);
         }
     }
 
@@ -243,11 +279,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     async function sendBLE(text) {
-        verboseLog('[BLE SEND] > '+ text);
-        if (!rxCharacteristic) {
-            debugLog('Not connected yet!');
-            return;
-        }
+        verboseLog('[BLE QUEUED] > ' + text);
+        bleQueue.push(text);
+        processQueue();
+    }
+
+    async function processQueue() {
+        if (isSending || bleQueue.length === 0 || !rxCharacteristic) return;
+
+        isSending = true;
+        let text = bleQueue.shift();
+
         if (accountId && text.startsWith('ht ') && !text.includes('bsid=')) {
             const parts = text.split('^');
             if (parts.length > 1) {
@@ -255,8 +297,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 text = parts.join('^');
             }
         }
-        const encoder = new TextEncoder();
-        await rxCharacteristic.writeValue(encoder.encode(text));
+
+        verboseLog('[BLE SEND] > ' + text);
+
+        try {
+            const encoder = new TextEncoder();
+            await rxCharacteristic.writeValue(encoder.encode(text));
+        } catch (err) {
+            console.error('BLE Write Error:', err);
+        }
+
+        setTimeout(() => {
+            isSending = false;
+            processQueue();
+        }, 80); // Tune this if needed based on device responsiveness
     }
 
     window.sendBLE = sendBLE;
@@ -277,6 +331,14 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (window.activeRequest === 'text' || window.activeRequest === 'value') {
             window._modbusHandlers.forEach(handler => handler(value));
             return;
+        } else if (value.includes('HTTP/1.1 200 OK') && value.includes(';;Ok')) {
+            const toastEl = document.getElementById('bleToast');
+            if (!toastEl) return;
+
+            toastEl.querySelector('.toast-body').textContent = '✅ Command acknowledged successfully!';
+
+            const toast = bootstrap.Toast.getOrCreateInstance(toastEl);
+            toast.show();
         } else {
         for (const key in window._modbusHandlers) {
             if (value.includes(key)) {

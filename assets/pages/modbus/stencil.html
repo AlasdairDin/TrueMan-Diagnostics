@@ -1,0 +1,197 @@
+<div class="container mt-4">
+  <div id="loadingOverlay"
+     class="position-fixed start-0 w-100 d-flex align-items-center justify-content-center bg-white"
+     style="top: 56px; height: calc(100vh - 56px); z-index: 9999; display: flex;">
+  <div class="spinner-border text-primary" role="status">
+    <span class="visually-hidden">Loading...</span>
+  </div>
+</div>
+  <h3 id="modbusTitle" class="mb-3">Device:</h3>
+  <button id="refreshLabelsBtn" class="btn btn-outline-primary btn-sm">Refresh Labels</button>
+  <table class="table table-bordered" id="modbusTable">
+    <thead class="table-primary">
+      <tr>
+        <th>Key</th>
+        <th>Value</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+(function () {
+  const DEVICE_NAME = "${DEVICE_NAME_PLACEHOLDER}";
+  const DEVICE_NUMBER = "${DEVICE_NUMBER_PLACEHOLDER}";
+
+  document.getElementById('modbusTitle').textContent = `Device: ${DEVICE_NAME}`;
+
+  const POLL_INTERVAL = 5000;
+  const LABEL_COLLECTION_TIMEOUT = 2000;
+  let regLabels = {};
+  let pollTimer = null;
+
+  let textBuffer = '';
+  let valueBuffer = '';
+  let textTimeout = null;
+  let valueDebounce = null;
+  window.activeRequest = null;
+
+  function debugLog(...args) {
+      if (window.MODBUS_DEBUG) console.log('[Modbus DEBUG]', ...args);
+  }
+
+  function sendModbusRequest(endpoint) {
+    const packet = `ht GET /${endpoint} HTTP/1.1^Content-Length: 5^Content-Type: text/plain^^dev=${DEVICE_NUMBER};`;
+    debugLog(`[Modbus] Sending BLE packet: ${packet}`);
+
+    if (endpoint.includes('RegText')) window.activeRequest = 'text';
+    else if (endpoint.includes('RegValue')) window.activeRequest = 'value';
+
+    if (typeof window.sendBLE === 'function') {
+      window.sendBLE(packet);
+    } else {
+      console.warn('[Modbus] sendBLE not available');
+    }
+  }
+
+  function flushTextBuffer() {
+    const parts = textBuffer.split(';;')[1] || '';
+    const lines = parts.split('&');
+
+    regLabels = {};
+    lines.forEach(pair => {
+      const [idx, label] = pair.split(/[:=]/);
+      const index = parseInt(idx);
+      if (!isNaN(index) && label) {
+        regLabels[index] = label.trim();
+      }
+    });
+
+    debugLog('[Modbus] Parsed regLabels:', regLabels);
+    renderInitialTable();
+    startValuePolling();
+  }
+
+  function flushValueBuffer() {
+    const parts = valueBuffer.split(';;')[1] || '';
+    const values = parts.split('&').filter(v => v.trim().length > 0);
+
+    const tbody = document.querySelector('#modbusTable tbody');
+    if (!tbody) return;
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+      overlay.style.opacity = '0';
+      setTimeout(() => overlay.remove(), 300);
+    }
+    const rows = tbody.querySelectorAll('tr');
+    rows.forEach((row, index) => {
+      const label = row.children[0].textContent;
+      const value = values[index] !== undefined ? values[index] : '...';
+
+      // Hide row if it's a default register label and value is 0
+      const isDefaultLabel = /^Reg \d+$/.test(label);
+      if (isDefaultLabel && value === '0') {
+        row.style.display = 'none';
+      } else {
+        row.style.display = '';
+        row.children[1].textContent = value;
+      }
+    });
+
+    debugLog('[Modbus] Updated values:', values);
+  }
+
+
+  function renderInitialTable() {
+    const tbody = document.querySelector('#modbusTable tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const maxIndex = Math.max(...Object.keys(regLabels).map(k => parseInt(k)));
+    for (let i = 0; i <= maxIndex; i++) {
+      const label = regLabels[i] || `Reg ${i}`;
+      const row = `<tr><td>${label}</td><td>...</td></tr>`;
+      tbody.insertAdjacentHTML('beforeend', row);
+    }
+  }
+
+  function handleModbusChunk(response) {
+    debugLog('[Modbus] BLE chunk:', window.activeRequest, response);
+
+    if (window.activeRequest === 'text') {
+      textBuffer += response;
+
+      if (textTimeout) clearTimeout(textTimeout);
+      textTimeout = setTimeout(() => {
+        flushTextBuffer();
+        window.activeRequest = null;
+      }, LABEL_COLLECTION_TIMEOUT);
+    }
+
+    if (window.activeRequest === 'value') {
+      valueBuffer += response;
+      clearTimeout(valueDebounce);
+      valueDebounce = setTimeout(() => {
+        flushValueBuffer();
+        window.activeRequest = null;
+      }, 1000);
+    }
+  }
+
+  function requestValueUpdate() {
+    valueBuffer = '';
+    sendModbusRequest('getModbusRegValue');
+  }
+
+  function startValuePolling() {
+    debugLog('[Modbus] Starting value polling...');
+    stopValuePolling(); // 👈 prevent multiple intervals
+    requestValueUpdate();
+    pollTimer = setInterval(requestValueUpdate, POLL_INTERVAL);
+  }
+
+  function stopValuePolling() {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+      debugLog('[Modbus] Polling stopped.');
+    }
+  }
+
+  if (!window._modbusHandlers) {
+    window._modbusHandlers = [];
+  } else {
+    window._modbusHandlers.length = 0; // prevent duplicates
+  }
+  window._modbusHandlers.push(handleModbusChunk);
+
+  // INITIALIZATION
+  debugLog('[Modbus] Requesting regText...');
+  sendModbusRequest('getModbusRegText');
+
+  window.addEventListener('beforeunload', stopValuePolling);
+
+  document.getElementById('refreshLabelsBtn').addEventListener('click', () => {
+    debugLog('[Modbus] Refresh Labels');
+    stopValuePolling();
+    textBuffer = '';
+    regLabels = {};
+    window.activeRequest = 'text';
+    const tbody = document.querySelector('#modbusTable tbody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="2">Refreshing labels...</td></tr>';
+
+    sendModbusRequest('getModbusRegText');
+
+    if (textTimeout) clearTimeout(textTimeout);
+    textTimeout = setTimeout(() => {
+      flushTextBuffer();
+      window.activeRequest = null;
+    }, LABEL_COLLECTION_TIMEOUT);
+  });
+
+  // Optional: expose stop method globally if needed
+  window.stopModbusPolling = stopValuePolling;
+
+})();
+</script>

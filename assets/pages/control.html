@@ -7,7 +7,7 @@
     <div class="card-body">
       <div class="row g-3">
         <div class="col-md-3">
-          <label class="form-label">Speed</label>
+          <label class="form-label" inputmode="numeric" pattern="[0-9]*" min="20" max="100">Speed</label>
           <div class="input-group">
             <button class="btn btn-outline-secondary" onclick="adjust('speed', -1)">-</button>
             <input id="speed" class="form-control text-center" value="0" onblur="inputChanged(this)">
@@ -15,7 +15,7 @@
           </div>
         </div>
         <div class="col-md-3">
-          <label class="form-label">Length</label>
+          <label class="form-label" inputmode="numeric" pattern="[0-9]*" min="0" max="100">Length</label>
           <div class="input-group">
             <button class="btn btn-outline-secondary" onclick="adjust('length', -1)">-</button>
             <input id="length" class="form-control text-center" value="0" onblur="inputChanged(this)">
@@ -23,7 +23,7 @@
           </div>
         </div>
         <div class="col-md-3">
-          <label class="form-label">Line</label>
+          <label class="form-label" inputmode="numeric" pattern="[0-9]*" min="0" max="100">Line</label>
           <div class="input-group">
             <button class="btn btn-outline-secondary" onclick="adjust('line', -1)">-</button>
             <input id="line" class="form-control text-center" value="0" onblur="inputChanged(this)">
@@ -31,7 +31,7 @@
           </div>
         </div>
         <div class="col-md-3">
-          <label class="form-label">Swing</label>
+          <label class="form-label" inputmode="numeric" pattern="[0-9]*" min="-9" max="9">Swing</label>
           <div class="input-group">
             <button class="btn btn-outline-secondary" onclick="adjust('swing', -1)">-</button>
             <input id="swing" class="form-control text-center" value="0" onblur="inputChanged(this)">
@@ -52,7 +52,7 @@
           <button id="autoFeedToggle" class="btn btn-outline-primary w-100" onclick="toggle(this)">Off</button>
         </div>
         <div class="col-md-3">
-          <label class="form-label">Repeat Time</label>
+          <label class="form-label" inputmode="numeric" pattern="[0-9]*" min="2" max="10">Repeat Time</label>
           <div class="input-group">
             <button class="btn btn-outline-secondary" onclick="adjust('repeat', -1)">-</button>
             <input id="repeat" class="form-control text-center" value="0" onblur="inputChanged(this)">
@@ -87,7 +87,7 @@
           </select>
         </div>
         <div class="col-md-3">
-          <label class="form-label">Brightness</label>
+          <label class="form-label" inputmode="numeric" pattern="[0-9]*" min="0" max="100">Brightness</label>
           <div class="input-group">
             <button class="btn btn-outline-secondary" onclick="adjust('brightness', -1)">-</button>
             <input id="brightness" class="form-control text-center" value="60" readonly>
