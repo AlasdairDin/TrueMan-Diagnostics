@@ -1,6 +1,8 @@
-# ⚙️ Modbus BLE Web Interface
+# ⚙️ BLE Web Interface
 
-This project is a web-based interface for interacting with Modbus devices via BLE using Nordic UART Service.
+This project is a PWA interface for interacting with Modbus devices via BLE using Nordic UART Service.
+
+Live Preview: https://bola.tools-kit.net/Trueman 
 
 ---
 Connect -> Console -> Control -> Modbus Tables
@@ -106,3 +108,4 @@ A raw terminal interface to directly send and receive UART messages over BLE.
 - This script is intended to be **included inside a container page**, not as a standalone file
 - Requires **BLE support** in the browser (e.g., Chrome)
 - Can be hosted locally or embedded within a web app UI
+
