@@ -92,11 +92,13 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(response => response.text())
             .then(html => {
             if (pageName === "modbus/stencil" && pageContext) {
+                debugLog(`Loading Modbus device: ${pageContext.name} (${pageContext.number})`);
                 html = html
                 .replace(/DEVICE_NAME_PLACEHOLDER/g, pageContext.name)
                 .replace(/DEVICE_NUMBER_PLACEHOLDER/g, pageContext.number);
             }
             container.innerHTML = html;
+            if (typeof updateUI === 'function') updateUI();
 
             // Re-execute embedded scripts
             const scripts = container.querySelectorAll("script");
@@ -277,6 +279,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Minimal reset back to Connect UI (no prompts, no nulling BLE refs)
+    function resetToConnect(reason = 'Disconnected') {
+        debugLog('[BLE] Reset to Connect due to:', reason);
+
+        try { stopSettingsPolling(); } catch {}
+        try { stopStatusPolling(); } catch {}
+        try { if (window.stopModbusPolling) window.stopModbusPolling(); } catch {}
+
+        // stop queue activity; keep refs intact
+        isSending = false;
+        try { bleQueue.length = 0; } catch {}
+
+        const mainLayout = document.getElementById('mainLayout');
+        const connectLayout = document.getElementById('connectLayout');
+        if (mainLayout) mainLayout.style.display = 'none';
+        if (connectLayout) connectLayout.style.display = 'block';
+        document.getElementById('logoutNavItem')?.classList.add('d-none');
+
+        loadPage('connect', 'connectLayout');
+    }
+
+
 
     async function sendBLE(text) {
         verboseLog('[BLE QUEUED] > ' + text);
@@ -285,33 +309,61 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function processQueue() {
-        if (isSending || bleQueue.length === 0 || !rxCharacteristic) return;
+    if (isSending || bleQueue.length === 0 || !rxCharacteristic) return;
 
-        isSending = true;
-        let text = bleQueue.shift();
+    isSending = true;
+    let text = bleQueue.shift();
 
-        if (accountId && text.startsWith('ht ') && !text.includes('bsid=')) {
-            const parts = text.split('^');
-            if (parts.length > 1) {
-                parts.splice(1, 0, `bsid=${accountId}`);
-                text = parts.join('^');
-            }
+    if (accountId && text.startsWith('ht ') && !text.includes('bsid=')) {
+        const parts = text.split('^');
+        if (parts.length > 1) {
+        parts.splice(1, 0, `bsid=${accountId}`);
+        text = parts.join('^');
         }
-
-        verboseLog('[BLE SEND] > ' + text);
-
-        try {
-            const encoder = new TextEncoder();
-            await rxCharacteristic.writeValue(encoder.encode(text));
-        } catch (err) {
-            console.error('BLE Write Error:', err);
-        }
-
-        setTimeout(() => {
-            isSending = false;
-            processQueue();
-        }, 80); // Tune this if needed based on device responsiveness
     }
+
+    verboseLog('[BLE SEND] > ' + text);
+
+    try {
+        // Fast-fail if the link is already down
+        const isConnected = rxCharacteristic?.service?.device?.gatt?.connected === true;
+        if (!isConnected) {
+        throw new Error('GATT Server is disconnected');
+        }
+
+        const encoder = new TextEncoder();
+        await rxCharacteristic.writeValue(encoder.encode(text));
+    } catch (err) {
+        console.error('BLE Write Error:', err);
+        const msg = String(err?.message || err);
+
+        // Detect the exact cases you reported
+        if (
+        msg.includes('GATT Server is disconnected') ||
+        msg.includes('device.gatt.connect') ||
+        err?.name === 'NetworkError'
+        ) {
+        const toastEl = document.getElementById('bleToast');
+        if (toastEl) {
+        toastEl.classList.remove('bg-success','bg-warning','bg-info','bg-light','bg-dark','text-dark','text-white');
+        toastEl.classList.add('bg-danger','text-white');
+        toastEl.querySelector('.toast-body').textContent = '⚠️ Connection lost. Please reconnect.';
+        bootstrap.Toast.getOrCreateInstance(toastEl, { delay: 3500 }).show();
+        }
+        isSending = false;
+        resetToConnect('GATT disconnected during write');
+        console.error('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=BLE CONNECTION LOST=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=');
+        return;
+        }
+    }
+
+    // Continue draining the queue on success
+    setTimeout(() => {
+        isSending = false;
+        processQueue();
+    }, 80);
+    }
+
 
     window.sendBLE = sendBLE;
 
@@ -332,13 +384,15 @@ document.addEventListener('DOMContentLoaded', () => {
             window._modbusHandlers.forEach(handler => handler(value));
             return;
         } else if (value.includes('HTTP/1.1 200 OK') && value.includes(';;Ok')) {
-            const toastEl = document.getElementById('bleToast');
-            if (!toastEl) return;
+            if (DEBUG) {
+                const toastEl = document.getElementById('bleToast');
+                if (!toastEl) return;
 
-            toastEl.querySelector('.toast-body').textContent = '✅ Command acknowledged successfully!';
+                toastEl.querySelector('.toast-body').textContent = '✅ Command acknowledged successfully!';
 
-            const toast = bootstrap.Toast.getOrCreateInstance(toastEl);
-            toast.show();
+                const toast = bootstrap.Toast.getOrCreateInstance(toastEl);
+                toast.show();
+            }
         } else {
         for (const key in window._modbusHandlers) {
             if (value.includes(key)) {
@@ -394,18 +448,11 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             currentuser = document.getElementById('username').value
             accountId = payload;
-            updateConsoleHeader();
             showMainLayout();
             debugLog('Login Success: bsid = ' + accountId);
         }
     }
 ///////////////////////////////////////////////////////////// FUNCTIONS
-    function updateConsoleHeader() {
-        const header = document.getElementById('consoleHeader');
-        if (header) {
-            header.innerText = 'Console (Account: ' + currentuser + " | "+ accountId + ')';
-        }
-    }
 
     function log(text) {
         const consoleDiv = document.getElementById('console');
@@ -427,10 +474,12 @@ document.addEventListener('DOMContentLoaded', () => {
     async function disconnect() {
         if (bleDevice && bleDevice.gatt.connected) {
             if (confirm('Are you sure you want to logout and disconnect?')) {
-            bleDevice.gatt.disconnect();
-            debugLog('Device disconnected.');
+                bleDevice.gatt.disconnect();
+                debugLog('Device disconnected.');
             }
         }
+
+        // Reset references
         bleDevice = null;
         uartService = null;
         txCharacteristic = null;
@@ -438,14 +487,20 @@ document.addEventListener('DOMContentLoaded', () => {
         accountId = null;
         awaitingLoginResponse = false;
 
+        // Hide main layout and show connect layout
         const mainLayout = document.getElementById('mainLayout');
         const connectLayout = document.getElementById('connectLayout');
         if (mainLayout) mainLayout.style.display = 'none';
         if (connectLayout) connectLayout.style.display = 'block';
-        document.getElementById('logoutNavItem').classList.add('d-none');
 
+        // Explicitly hide the login screen in case it’s left visible
+        const loginScreen = document.getElementById('loginScreen');
+        if (loginScreen) loginScreen.style.display = 'none';
+
+        // Re-load connect page
         loadPage('connect', 'connectLayout');
     }
+
 ///////////////////////////////////////////////////////////// GET SETTINGS - CONTROL TAB
     //---------------------------// POLLING
     function startSettingsPolling() {
@@ -492,7 +547,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (fields.LengthValue) updateNumber('length', fields.LengthValue);
         if (fields.LineValue) updateNumber('line', fields.LineValue);
         if (fields.SwingValue) updateNumber('swing', fields.SwingValue);
-        if (fields.HopperValue) updateNumber('repeat', fields.HopperValue);
         if (fields.BrightValue) updateNumber('brightness', fields.BrightValue);
         if (fields.LaserValue !== undefined) updateToggle('lazerToggle', fields.LaserValue);
         if (fields.BuzzerValue !== undefined) updateToggle('buzzerToggle', fields.BuzzerValue);

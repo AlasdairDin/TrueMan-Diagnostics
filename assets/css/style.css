@@ -1,29 +1,238 @@
-/* assets/css/style.css */
+/* =========================================================
+   TrueMan Diagnostics — Bootstrap 5.3 theme (light/dark)
+   Minimal, only what's needed
+   ========================================================= */
 
+/* Sun/Moon icon swap */
+.icon-moon { display: none; }
+:root[data-bs-theme="dark"] .icon-sun { display: none; }
+:root[data-bs-theme="dark"] .icon-moon { display: inline; }
 
+/* ---------------------------------------------------------
+   LIGHT THEME (default)
+   --------------------------------------------------------- */
+:root,
+:root[data-bs-theme="light"] {
+  /* Brand */
+  --bs-primary: #e7003a;
+  --bs-primary-rgb: 231, 0, 58;
+
+  /* Status colours (kept as requested) */
+  --bs-success: #16a34a;
+  --bs-success-rgb: 22, 163, 74;
+  --bs-warning: #f59e0b;
+  --bs-warning-rgb: 245, 158, 11;
+  --bs-danger: #dc2626;
+  --bs-danger-rgb: 220, 38, 38;
+
+  /* Secondary (used by btn-secondary if you use it) */
+  --bs-secondary: #64748b;
+  --bs-secondary-rgb: 100, 116, 139;
+
+  /* Body */
+  --bs-body-bg: #f8f9fa;
+  --bs-body-color: #212529;
+  --bs-border-color: #ced4da;
+
+  /* Links follow primary */
+  --bs-link-color: var(--bs-primary);
+  --bs-link-hover-color: color-mix(in srgb, var(--bs-primary), black 15%);
+
+  /* Focus ring */
+  --bs-focus-ring-color: color-mix(in srgb, var(--bs-primary), white 30%);
+
+  /* Button shade vars (light) */
+  --tr-btn-hover:  color-mix(in srgb, var(--bs-primary), black 12%);
+  --tr-btn-active: color-mix(in srgb, var(--bs-primary), black 18%);
+  --tr-btn-outline-hover-bg: rgba(var(--bs-primary-rgb), 0.12);
+}
+
+/* ---------------------------------------------------------
+   DARK THEME — your palette
+   Body: Rich-Black #121420
+   Surfaces (cards/inputs/console): Onyx #403F4C
+   Borders: Raisin-Black #2c2b3c
+   Primary: Imperial Red #ff3943
+   --------------------------------------------------------- */
+:root[data-bs-theme="dark"] {
+  --bs-body-bg: #121420;
+  --bs-body-color: #e5e7eb;
+  --bs-border-color: #2c2b3c;
+
+  --bs-primary: #ff3943;
+  --bs-primary-rgb: 255, 57, 67;
+
+  /* Keep status colours same as light */
+  --bs-success: #16a34a;
+  --bs-success-rgb: 22, 163, 74;
+  --bs-warning: #f59e0b;
+  --bs-warning-rgb: 245, 158, 11;
+  --bs-danger: #dc2626;
+  --bs-danger-rgb: 220, 38, 38;
+
+  /* Surfaces */
+  --bs-card-bg: #403F4C;            /* Onyx */
+  --bs-card-border-color: #2c2b3c;  /* Raisin-Black */
+  --tr-input-bg: #403F4C;           /* Onyx for inputs/textarea/select */
+  --tr-input-border: #2c2b3c;
+
+  /* Links follow primary */
+  --bs-link-color: var(--bs-primary);
+  --bs-link-hover-color: color-mix(in srgb, var(--bs-primary), white 15%);
+
+  /* Focus ring visible on dark */
+  --bs-focus-ring-color: color-mix(in srgb, var(--bs-primary), white 35%);
+
+  /* Button shade vars (dark) */
+  --tr-btn-hover:  color-mix(in srgb, var(--bs-primary), white 12%);
+  --tr-btn-active: color-mix(in srgb, var(--bs-primary), white 18%);
+  --tr-btn-outline-hover-bg: rgba(var(--bs-primary-rgb), 0.20);
+}
+
+/* ---------------------------------------------------------
+   Global
+   --------------------------------------------------------- */
 body {
-    background-color: #f8f9fa;
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
 }
 
-#loadingOverlay {
-  transition: opacity 0.3s ease-in-out;
-}
+#loadingOverlay { transition: opacity 0.3s ease-in-out; }
 
-button {
-    background-color: #000000;
-}
+/* Active nav link highlight */
+.navbar .nav-link.active { border-radius: 0.25rem; }
+:root[data-bs-theme="light"] .navbar .nav-link.active,
+:root .navbar .nav-link.active { background-color: rgba(255, 255, 255, 0.25); }
+:root[data-bs-theme="dark"] .navbar .nav-link.active { background-color: rgba(255, 255, 255, 0.15); }
 
-.navbar .nav-link.active {
-    background-color: rgba(255, 255, 255, 0.25);
-    border-radius: 0.25rem;
-}
-
+/* Console panel (theme-aware, Onyx in dark via explicit bg) */
 #console {
-    background-color: #ffffff;
-    white-space: pre-wrap;
-    height: 300px;
-    overflow-y: scroll;
-    padding: 10px;
-    border: 1px solid #ced4da;
-    border-radius: 0.25rem;
+  background-color: var(--bs-body-bg);         /* light: body bg */
+  color: var(--bs-body-color);
+  white-space: pre-wrap;
+  height: 300px;
+  overflow-y: scroll;
+  padding: 10px;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.25rem;
 }
+:root[data-bs-theme="dark"] #console {
+  background-color: #403F4C;                   /* Onyx in dark */
+  border-color: var(--bs-card-border-color);
+}
+
+/* Card surfaces pick up vars (Bootstrap reads --bs-card-bg) */
+:root[data-bs-theme="dark"] .card { color: var(--bs-body-color); }
+
+/* Inputs / selects / checkboxes in dark */
+:root[data-bs-theme="dark"] .form-control,
+:root[data-bs-theme="dark"] .form-select,
+:root[data-bs-theme="dark"] .form-check-input {
+  background-color: var(--tr-input-bg);
+  color: var(--bs-body-color);
+  border-color: var(--tr-input-border);
+}
+:root[data-bs-theme="dark"] .form-control::placeholder { color: #b9c0cc; }
+
+/* Tables inherit themed text */
+.table { color: inherit; }
+
+/* Toast text remains readable if bg class changes */
+.toast .toast-body { color: inherit; }
+
+/* ---------------------------------------------------------
+   Simple theme‑aware button colors
+   - Plain .btn becomes primary
+   - .btn-primary shades from --bs-primary
+   - Outline hover gets subtle fill
+   --------------------------------------------------------- */
+
+/* Plain .btn (no variant) -> primary */
+.btn:not([class*="btn-"]) {
+  background-color: var(--bs-primary);
+  color: #fff;
+  border-color: var(--bs-primary);
+}
+.btn:not([class*="btn-"]):hover {
+  background-color: var(--tr-btn-hover);
+  border-color: var(--tr-btn-hover);
+}
+.btn:not([class*="btn-"]):active {
+  background-color: var(--tr-btn-active);
+  border-color: var(--tr-btn-active);
+}
+
+/* .btn-primary */
+.btn-primary {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: var(--bs-primary);
+  --bs-btn-border-color: var(--bs-primary);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--tr-btn-hover);
+  --bs-btn-hover-border-color: var(--tr-btn-hover);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--tr-btn-active);
+  --bs-btn-active-border-color: var(--tr-btn-active);
+  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+}
+
+/* Outline primary: subtle fill on hover/active */
+.btn-outline-primary {
+  --bs-btn-color: var(--bs-primary);
+  --bs-btn-border-color: var(--bs-primary);
+  --bs-btn-hover-color: var(--bs-primary);
+  --bs-btn-hover-bg: var(--tr-btn-outline-hover-bg);
+  --bs-btn-hover-border-color: var(--bs-primary);
+  --bs-btn-active-color: var(--bs-primary);
+  --bs-btn-active-bg: var(--tr-btn-outline-hover-bg);
+  --bs-btn-active-border-color: var(--bs-primary);
+}
+
+/* === Theme switch transition (only while toggling) === */
+:root {
+  --theme-anim-duration: 240ms;
+  --theme-anim-ease: cubic-bezier(.2, 0, .2, 1);
+}
+
+/* Only animate during the brief toggle window to avoid perf costs */
+:root.theme-animate,
+:root.theme-animate * {
+  transition:
+    background-color var(--theme-anim-duration) var(--theme-anim-ease),
+    color            var(--theme-anim-duration) var(--theme-anim-ease),
+    border-color     var(--theme-anim-duration) var(--theme-anim-ease),
+    box-shadow       var(--theme-anim-duration) var(--theme-anim-ease),
+    fill             var(--theme-anim-duration) var(--theme-anim-ease),
+    stroke           var(--theme-anim-duration) var(--theme-anim-ease);
+}
+
+/* Respect reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  :root.theme-animate,
+  :root.theme-animate * {
+    transition: none !important;
+  }
+}
+#logoImg {
+  transition:
+    filter var(--theme-anim-duration) var(--theme-anim-ease),
+    opacity var(--theme-anim-duration) var(--theme-anim-ease);
+}
+.trueman-logo {
+  width: 100%;
+  height: auto;
+  max-width: 90vw;
+}
+
+@media (min-width: 768px) {
+  .trueman-logo {
+    max-width: 300px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .trueman-logo {
+    max-width: 400px;
+  }
+}
+

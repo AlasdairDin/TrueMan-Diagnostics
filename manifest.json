@@ -1,10 +1,38 @@
 {
-    "name": "Bola Machine Diagnostics",
-    "short_name": "ControlPanel",
-    "start_url": "./index.html",
-    "display": "standalone",
-    "background_color": "#f8f9fa",
-    "theme_color": "#E03636FF",
-    "description": "Bola Machine Diagnostics and Control"
-  }
-  
+  "name": "Bola Diagnostics - TrueMan",
+  "short_name": "Diagnostics",
+  "description": "BLE diagnostics and control panel for TrueMan machines",
+  "scope": "./",
+  "start_url": "./index.html",
+  "icons": [
+    {
+      "src": "./assets/favicon192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/favicon512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "./assets/screenshots/desktop-preview.png",
+      "sizes": "1594x772",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "./assets/screenshots/mobile-preview.png",
+      "sizes": "481x825",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "theme_color": "#ee1551",
+  "background_color": "#000000",
+  "display": "standalone"
+}
